@@ -1,4 +1,4 @@
-# Verificador de habilitación – Resolución 3100 de 2019 (versión completa)
+# Plataforma de gestión para la habilitación de servicios de salud – Resolución 3100 de 2019
 
 Herramienta web para **autoevaluar el cumplimiento de los criterios de habilitación** del Anexo Técnico de la Resolución 3100 de 2019 (numeral 11), por servicio y por estándar. Pensada para consultores y para IPS pequeñas.
 
@@ -24,7 +24,7 @@ Herramienta web para **autoevaluar el cumplimiento de los criterios de habilitac
 ## Cómo se hizo
 
 - HTML, CSS y JavaScript sin frameworks; File System Access API para las evidencias.
-- Los 3.963 requisitos se extrajeron por OCR del PDF escaneado de la resolución, se estructuraron con un programa en Python y se validaron manualmente.
+- Los 3.963 requisitos se extrajeron del PDF escaneado de la resolución, se estructuraron con un programa en Python y se validaron manualmente.
 - Excel con ExcelJS y Word con docx, generados en el navegador.
 
 ## Autor y licencia
