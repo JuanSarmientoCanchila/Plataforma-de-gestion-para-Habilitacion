@@ -1,5 +1,7 @@
 # Plataforma de gestión para la habilitación de servicios de salud – Resolución 3100 de 2019
 
+#**https://juansarmientocanchila.github.io/Plataforma-de-gestion-para-Habilitacion/**
+
 Herramienta web para **evaluar el cumplimiento de los criterios de habilitación** del Anexo Técnico de la Resolución 3100 de 2019 (numeral 11), por servicio y por estándar. Pensada para consultores y para IPS pequeñas.
 
 > Datos de ejemplo ficticios. Herramienta de autoevaluación y asesoría: no reemplaza la verificación oficial de la Secretaría de Salud ni la declaración en el REPS.
