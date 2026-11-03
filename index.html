@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="author" content="Juan Diego Sarmiento Canchila">
+  <meta name="copyright" content="© 2026 Juan Diego Sarmiento Canchila. Todos los derechos reservados.">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0b5c8a">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icono-192.png">
+  <title>Verificador de habilitación – Resolución 3100 de 2019</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1>Verificador de habilitación – Resolución 3100 de 2019</h1>
+    <p>Autoevaluación del cumplimiento de los criterios del Anexo Técnico (numeral 11), por servicio y por estándar.</p>
+    <div id="sesion" class="sesion" hidden>
+      <span id="sesion-email"></span>
+      <button id="salir" type="button" class="mini">Cerrar sesión</button>
+    </div>
+    <p class="aviso">Herramienta de autoevaluación y asesoría. No reemplaza la verificación oficial de la Secretaría de Salud ni la declaración en el REPS. El texto de los requisitos fue transcrito por OCR del documento oficial: ante cualquier duda, prima el texto de la resolución.</p>
+  </header>
+
+  <main id="acceso" hidden>
+    <div class="acceso">
+      <h2 id="acceso-titulo">Iniciar sesión</h2>
+      <form id="form-acceso" novalidate>
+        <label id="acc-correo-l">Correo electrónico <input type="email" id="acc-correo" autocomplete="email"></label>
+        <label id="acc-clave-l">Contraseña <input type="password" id="acc-clave" autocomplete="current-password"></label>
+        <label id="acc-clave2-l" hidden>Repite la contraseña <input type="password" id="acc-clave2" autocomplete="new-password"></label>
+        <div class="botones"><button type="submit" id="acc-enviar" class="principal">Entrar</button></div>
+      </form>
+      <p class="enlaces">
+        <button type="button" class="enlace" id="acc-cambiar" hidden>Volver a iniciar sesión</button>
+        <button type="button" class="enlace" id="acc-olvide">Olvidé mi contraseña</button>
+      </p>
+      <div id="acc-msg" role="alert"></div>
+      <p class="ayuda">Acceso solo para usuarios autorizados. Tus evaluaciones se guardan en tu cuenta; los archivos de evidencia se quedan en tu computador y nunca se suben.</p>
+    </div>
+  </main>
+
+  <main id="app" hidden>
+    <div id="recuperar" hidden>
+      <p id="recuperar-texto"></p>
+      <div class="botones">
+        <button id="recuperar-si" type="button">Recuperar</button>
+        <button id="recuperar-no" type="button" class="secundario">Descartar</button>
+      </div>
+    </div>
+
+    <div class="barra">
+      <nav class="pestanas" role="tablist">
+        <button type="button" class="pestana activa" data-vista="lista">Mis evaluaciones</button>
+        <button type="button" class="pestana" data-vista="dashboard">Dashboard</button>
+        <button type="button" class="pestana" data-vista="alcance">1. Datos y alcance</button>
+        <button type="button" class="pestana" data-vista="verificar">2. Verificación</button>
+        <button type="button" class="pestana" data-vista="resultados">3. Resultados y brechas</button>
+      </nav>
+      <span id="guardado" aria-live="polite"></span>
+    </div>
+    <div id="carpeta" class="carpeta"></div>
+    <div id="mensajes" role="alert"></div>
+
+    <!-- Mis evaluaciones -->
+    <section id="vista-lista" class="vista">
+      <div class="barra">
+        <h2 id="lista-titulo">Mis evaluaciones</h2>
+        <button type="button" class="agregar" id="lista-nueva">+ Nueva evaluación</button>
+      </div>
+      <div id="lista-contenido"></div>
+    </section>
+
+    <!-- Dashboard de la evaluación abierta -->
+    <section id="vista-dashboard" class="vista" hidden>
+      <div id="dashboard"></div>
+    </section>
+
+    <!-- Vista 1 -->
+    <section id="vista-alcance" class="vista" hidden>
+      <div class="general">
+        <h2>Datos de la IPS</h2>
+        <div class="campos">
+          <label>Nombre de la IPS o profesional <input type="text" id="ips-nombre"></label>
+          <label>Sede <input type="text" id="ips-sede"></label>
+          <label>Código REPS <input type="text" id="ips-reps"></label>
+          <label>Fecha de la evaluación <input type="date" id="ips-fecha"></label>
+          <label>Evaluador <input type="text" id="ips-evaluador"></label>
+        </div>
+        <p class="ayuda" id="norma-info"></p>
+      </div>
+
+      <div class="general">
+        <h2>Alcance de la asesoría</h2>
+        <p class="ayuda">Marca los servicios y estándares que vas a evaluar. Solo ellos aparecerán en la verificación y en los porcentajes. Lo que ya hayas marcado de un servicio o estándar que quites del alcance no se pierde: reaparece si lo vuelves a incluir.</p>
+        <h3>Estándares</h3>
+        <div id="lista-estandares" class="lista-checks"></div>
+        <div class="botones"><button type="button" class="mini" id="est-todos">Todos</button><button type="button" class="mini" id="est-ninguno">Ninguno</button></div>
+        <h3>Servicios</h3>
+        <label class="check-fila"><input type="checkbox" id="incluir-todos"> <strong>11.1 Criterios aplicables a todos los servicios</strong> <span class="ayuda" id="cuenta-111"></span></label>
+        <div id="lista-servicios"></div>
+        <div class="botones"><button type="button" class="mini" id="serv-ninguno">Quitar todos los servicios</button></div>
+        <p id="resumen-alcance" class="resumen"></p>
+      </div>
+      <div class="botones fin">
+        <button type="button" class="agregar" id="ir-verificar">Ir a la verificación →</button>
+      </div>
+    </section>
+
+    <!-- Vista 2 -->
+    <section id="vista-verificar" class="vista" hidden>
+      <div class="verificar-layout">
+        <aside id="lateral"></aside>
+        <div class="panel">
+          <div id="filtros" class="filtros">
+            <label>Estándar <select id="f-estandar"></select></label>
+            <label>Estado <select id="f-estado">
+              <option value="">Todos</option><option value="sr">Sin revisar</option><option value="c">Cumple</option>
+              <option value="n">No cumple</option><option value="na">No aplica</option></select></label>
+            <label class="crece">Buscar <input type="search" id="f-texto" placeholder="Palabra del requisito"></label>
+            <label class="check-fila ver-todos"><input type="checkbox" id="ver-todos"> Ver todos los criterios (también los que no aplican a mi perfil)</label>
+            <label>Marcar visibles como <select id="masivo"><option value="">Elegir…</option><option value="c">Cumple</option><option value="n">No cumple</option><option value="na">No aplica</option><option value="sr">Sin revisar</option></select></label>
+          </div>
+          <h2 id="titulo-servicio"></h2>
+          <p id="ocultos" class="ayuda"></p>
+          <p id="avance-servicio" class="resumen"></p>
+          <div id="requisitos"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Vista 3 -->
+    <section id="vista-resultados" class="vista" hidden>
+      <div class="barra">
+        <h2>Resultados</h2>
+        <div class="botones">
+          <button id="exportar" type="button">Exportar a Excel</button>
+          <button id="exportar-word" type="button">Exportar informe (Word)</button>
+          <label class="boton-archivo">Importar Excel <input type="file" id="archivo-xlsx" accept=".xlsx"></label>
+          <button id="nueva" type="button" class="secundario">Nueva evaluación</button>
+        </div>
+      </div>
+      <div id="resultados"></div>
+    </section>
+  </main>
+
+  <footer>
+    <p>Creador: <strong>Juan Diego Sarmiento Canchila</strong> · Bioingeniero · Contacto: <a href="mailto:juan.sarmientocanchila@gmail.com">juan.sarmientocanchila@gmail.com</a></p>
+    <p>© 2026 Todos los derechos reservados. Prohibida la copia, redistribución o uso comercial sin autorización escrita del autor.</p>
+  </footer>
+
+  <script src="exceljs.min.js"></script>
+  <script src="docx.iife.js"></script>
+  <script src="requisitos.js"></script>
+  <script src="supabase.js"></script>
+  <script src="config.js"></script>
+  <script src="nucleo.js"></script>
+  <script src="nube.js"></script>
+  <script src="resumen.js"></script>
+  <script src="dashboard.js"></script>
+  <script src="evidencias.js"></script>
+  <script src="autoguardado.js"></script>
+  <script src="exportar.js"></script>
+  <script src="importar.js"></script>
+  <script src="informe.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

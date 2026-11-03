@@ -1,0 +1,16 @@
+{
+  "name": "Verificador de habilitación – Resolución 3100",
+  "short_name": "Verificador 3100",
+  "description": "Autoevaluación del cumplimiento de la Resolución 3100 de 2019 por servicio y estándar.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f4f6f8",
+  "theme_color": "#0b5c8a",
+  "lang": "es",
+  "icons": [
+    { "src": "icono-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icono-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icono-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
