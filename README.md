@@ -19,7 +19,7 @@ Herramienta web para **autoevaluar el cumplimiento de los criterios de habilitac
 
 | Alcance y perfil | Verificación | Resultados |
 |---|---|---|
-| ![Alcance](capturas/1-alcance.png) | ![Verificación](capturas/2-verificacion.png) | ![Resultados](capturas/3-resultados.png) |
+| ![Alcance](1-alcance.png) | ![Verificación](2-verificacion.png) | ![Resultados](3-resultados.png) |
 
 ## Cómo se hizo
 
