@@ -98,7 +98,7 @@ async function exportarWord() {
   }
 
   const documento = new docx.Document({
-    creator: "Verificador Resolución 3100",
+    creator: "Plataforma de gestión para la habilitación de servicios de salud",
     styles: { default: { document: { run: { font: "Calibri", size: 21 } } },
       paragraphStyles: [{ id: "Heading1", name: "Heading 1", basedOn: "Normal", next: "Normal", quickFormat: true, run: { size: 28, bold: true, color: "0B5C8A" } }] },
     sections: [{ properties: { page: { size: { orientation: docx.PageOrientation.LANDSCAPE }, margin: { top: 900, bottom: 900, left: 900, right: 900 } } }, children: hijos }],

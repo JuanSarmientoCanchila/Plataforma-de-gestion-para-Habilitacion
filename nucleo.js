@@ -26,7 +26,7 @@ function nuevoEstado() {
   return {
     id: uuid(), // identifica esta evaluación (también la carpeta de evidencias en este equipo)
     ips: { nombre: "", sede: "", reps: "", fecha: fechaLocal(), evaluador: "" },
-    alcance: { servicios: [], estandares: ESTANDARES.map((_, i) => i), incluirTodos: true },
+    alcance: { servicios: [], estandares: [], incluirTodos: false }, // nada elegido: la persona define el alcance
     perfiles: {}, // cod servicio -> { comp: [], mod: [], proyecto: false }
     verTodos: false,
     carpeta: "", // nombre de la carpeta de evidencias (solo informativo)

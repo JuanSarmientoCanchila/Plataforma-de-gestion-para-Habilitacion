@@ -92,7 +92,7 @@ async function exportarExcel() {
   if (typeof ExcelJS === "undefined") throw new Error('No se encontró la librería de Excel. Revisa que "exceljs.min.js" esté en la carpeta.');
   if (!serviciosActivos().length || !estado.alcance.estandares.length) throw new Error("Define el alcance (servicios y estándares) antes de exportar.");
   const libro = new ExcelJS.Workbook();
-  libro.creator = "Verificador Resolución 3100";
+  libro.creator = "Plataforma de gestión para la habilitación de servicios de salud";
   hojaResumen(libro);
   await Promise.all(serviciosActivos().map((si) => cargarServicioEvidencias(si).catch(() => {})));
   hojaTabla(libro, "Detalle", filasEvaluables().filter((r) => !r[I.enc]));
