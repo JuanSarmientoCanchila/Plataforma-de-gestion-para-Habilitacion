@@ -120,7 +120,15 @@ const vistaResumen = () => "resumen"; // dashboard de la evaluación abierta; la
 .barra-eval { display:flex; align-items:center; gap:12px; flex-wrap:wrap; background:var(--azul-claro); border:1px solid var(--azul); border-radius:8px; padding:8px 12px; margin:4px 0 10px; }
 .eval-titulo { display:flex; gap:6px; align-items:baseline; flex-wrap:wrap; } .eval-titulo strong { color:var(--azul); }
 .pestanas.sub { flex:1; } .pestanas.sub .pestana { border-radius:6px; padding:6px 12px; background:white; }
-.pestanas.sub .pestana.activa { background:var(--azul); }`;
+.pestanas.sub .pestana.activa { background:var(--azul); }
+.dash-tarjeta.clicable { cursor:pointer; transition:box-shadow .15s, transform .15s; }
+.dash-tarjeta.clicable:hover { box-shadow:0 2px 8px rgba(16,24,40,.15); transform:translateY(-1px); }
+.dash-tarjeta.clicable:focus-visible { outline:3px solid var(--azul); outline-offset:2px; }
+.dash-tarjeta.activa { outline:3px solid var(--azul); outline-offset:1px; }
+.plan-crit { font-weight:600; font-size:.8rem; color:#475467; }
+@keyframes destello { 0% { box-shadow:0 0 0 4px rgba(11,92,138,.45); background:var(--azul-claro); } 100% { box-shadow:0 0 0 0 rgba(11,92,138,0); } }
+.destello { animation:destello 1.8s ease-out; border-radius:8px; }
+`;
   document.head.appendChild(estilo);
   const nav = document.querySelector(".barra .pestanas");
   nav.replaceChildren(...[["dashboard", "Dashboard"], ["lista", "Mis evaluaciones"]].map(([v, t]) => {
@@ -207,6 +215,12 @@ $("ir-verificar").addEventListener("click", () => irA("verificar"));
 const CAMPOS_IPS = { nombre: "ips-nombre", sede: "ips-sede", reps: "ips-reps", fecha: "ips-fecha", evaluador: "ips-evaluador" };
 Object.entries(CAMPOS_IPS).forEach(([k, id]) => $(id).addEventListener("input", () => { estado.ips[k] = $(id).value; cambio(); }));
 
+// Sin numeración en pantalla: el 11.1 se muestra solo por su nombre
+(() => {
+  const t = $("incluir-todos").parentElement.querySelector("strong");
+  if (t) t.textContent = "Criterios aplicables a todos los servicios";
+})();
+
 function mostrarIps() {
   Object.entries(CAMPOS_IPS).forEach(([k, id]) => ($(id).value = estado.ips[k] || ""));
 }
@@ -256,7 +270,7 @@ function dibujarAlcance() {
       c.checked = estado.alcance.servicios.includes(s.cod);
       const n = crear("span", "ayuda");
       n.dataset.cuenta = s.cod;
-      l.append(c, ` ${s.cod} ${s.nombre} `, n);
+      l.append(c, ` ${s.nombre} `, n);
       d.appendChild(l);
       if (c.checked) d.appendChild(panelPerfil(SERVICIOS.indexOf(s)));
     });
@@ -396,7 +410,8 @@ function dibujarLateral() {
     const b = crear("button", "serv-nav" + (si === servActual ? " actual" : ""));
     b.type = "button";
     b.dataset.si = si;
-    b.append(crear("span", "serv-cod", SERVICIOS[si].cod + (esProyecto(si) ? " · en proyecto" : "")), crear("span", "serv-nom", SERVICIOS[si].nombre));
+    if (esProyecto(si)) b.appendChild(crear("span", "serv-cod", "En proyecto"));
+    b.appendChild(crear("span", "serv-nom", SERVICIOS[si].nombre));
     const barra = crear("span", "barra-av");
     const rel = crear("span");
     rel.style.width = `${Math.round((t.avance || 0) * 100)}%`;
@@ -727,7 +742,7 @@ function tablaMatriz(m, filas, conPie) {
   const cuerpo = tabla.createTBody();
   filas.forEach((f) => {
     const tr = cuerpo.insertRow();
-    tr.appendChild(crear("td", "", `${f.serv.cod} ${f.serv.nombre}`));
+    tr.appendChild(crear("td", "", f.serv.nombre));
     f.celdas.forEach((c) => tr.appendChild(celdaPct(c)));
     tr.appendChild(celdaPct(f.total));
   });
@@ -782,7 +797,7 @@ function dibujarResultados() {
     br.forEach((r) => {
       const tr = b2.insertRow();
       tr.dataset.id = r[I.id];
-      tr.insertCell().textContent = SERVICIOS[r[I.serv]].cod;
+      tr.insertCell().textContent = SERVICIOS[r[I.serv]].nombre;
       tr.insertCell().textContent = ESTANDARES[r[I.std]];
       tr.insertCell().textContent = r[I.num];
       tr.insertCell().textContent = r[I.texto];
@@ -810,7 +825,7 @@ function dibujarResultados() {
     na.forEach((r) => {
       const tr = b3.insertRow();
       tr.dataset.id = r[I.id];
-      tr.insertCell().textContent = SERVICIOS[r[I.serv]].cod;
+      tr.insertCell().textContent = SERVICIOS[r[I.serv]].nombre;
       tr.insertCell().textContent = r[I.num];
       tr.insertCell().textContent = r[I.texto];
       const i = crear("input");

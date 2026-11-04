@@ -4,10 +4,27 @@
 let rolUsuario = "ips"; // "ips" | "consultor"
 const pctEntero = (x) => (x === null || x === undefined ? "—" : `${Math.round(x * 100)} %`);
 
-function tarjetaDash(titulo, valor, detalle, clase) {
-  const t = crear("div", "dash-tarjeta" + (clase ? " " + clase : ""));
+// Si recibe "alClick", la tarjeta se puede pulsar (también con teclado)
+function tarjetaDash(titulo, valor, detalle, clase, alClick, activa) {
+  const t = crear("div", "dash-tarjeta" + (clase ? " " + clase : "") + (alClick ? " clicable" : "") + (activa ? " activa" : ""));
   t.append(crear("span", "dash-tit", titulo), crear("strong", "", valor), crear("span", "dash-det", detalle));
+  if (alClick) {
+    t.tabIndex = 0;
+    t.setAttribute("role", "button");
+    t.setAttribute("aria-pressed", activa ? "true" : "false");
+    t.addEventListener("click", alClick);
+    t.addEventListener("keydown", (ev) => { if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); alClick(); } });
+  }
   return t;
+}
+// Lleva la vista a una parte del dashboard y la resalta un momento
+function resaltar(el) {
+  if (!el) return;
+  el.scrollIntoView({ behavior: "smooth", block: "start" });
+  el.classList.remove("destello");
+  void el.offsetWidth;
+  el.classList.add("destello");
+  setTimeout(() => el.classList.remove("destello"), 1800);
 }
 function insignia(pct) {
   const s = semaforo(pct);
@@ -48,7 +65,8 @@ function columnaPlan(titulo, items, clase, vacio, textoDias) {
   const ul = crear("ul", "plan-lista");
   items.slice(0, 5).forEach((it) => {
     const li = crear("li");
-    li.appendChild(crear("span", "plan-num", `${SERVICIOS[it.r[I.serv]].cod} · ${it.r[I.num]}`));
+    li.appendChild(crear("span", "plan-num", `${ESTANDARES[it.r[I.std]]} · ${SERVICIOS[it.r[I.serv]].nombre}`));
+    li.appendChild(crear("span", "plan-crit", `Criterio ${it.r[I.num]}`));
     li.appendChild(crear("span", "", textoCorto(it.r[I.texto])));
     li.appendChild(crear("span", "ayuda", textoDias(it)));
     ul.appendChild(li);
@@ -104,23 +122,26 @@ function dibujarDashboard() {
 
   const tarj = crear("div", "dash-tarjetas");
   const s = semaforo(g.pct);
-  tarj.appendChild(tarjetaDash("Cumplimiento global", pctEntero(g.pct), `${s.texto} · ${g.c} de ${g.aplicables} criterios cumplen`, "sem-" + s.clase));
-  tarj.appendChild(tarjetaDash("Avance de revisión", pctEntero(g.avance), `${g.total - g.sr} de ${g.total} criterios revisados`));
-  tarj.appendChild(tarjetaDash("Criterios que no cumplen", String(g.n), g.n ? "Brechas por cerrar" : "Sin brechas registradas", g.n ? "sem-bajo" : ""));
-  tarj.appendChild(tarjetaDash("Compromisos vencidos", String(plan.vencidas.length), plan.vencidas.length ? "Requieren atención ya" : "Ninguno vencido", plan.vencidas.length ? "sem-bajo" : ""));
+  const dest = {}; // secciones a las que lleva cada tarjeta
+  tarj.appendChild(tarjetaDash("Cumplimiento global", pctEntero(g.pct), `${s.texto} · ${g.c} de ${g.aplicables} criterios cumplen`, "sem-" + s.clase, () => resaltar(dest.estandar)));
+  tarj.appendChild(tarjetaDash("Avance de revisión", pctEntero(g.avance), `${g.total - g.sr} de ${g.total} criterios revisados`, "", () => resaltar(dest.servicio)));
+  tarj.appendChild(tarjetaDash("Criterios que no cumplen", String(g.n), g.n ? "Brechas por cerrar" : "Sin brechas registradas", g.n ? "sem-bajo" : "", () => resaltar(dest.plan)));
+  tarj.appendChild(tarjetaDash("Compromisos vencidos", String(plan.vencidas.length), plan.vencidas.length ? "Requieren atención ya" : "Ninguno vencido", plan.vencidas.length ? "sem-bajo" : "", () => resaltar(dest.vencidas)));
   c.appendChild(tarj);
   if (g.sr > 0) c.appendChild(crear("p", "ayuda", `Los ${g.sr} criterios sin revisar cuentan como pendientes: el cumplimiento sube a medida que se revisan y cumplen.`));
 
   const se = seccionDash("Cumplimiento por estándar");
   r.estandares.forEach((e) => se.appendChild(barraDash(e.nombre, e)));
   c.appendChild(se);
+  dest.estandar = se;
 
   const sv = seccionDash("Cumplimiento por servicio", "Los más rezagados aparecen primero.");
-  r.servicios.slice().sort((a, b) => (a.pct === null) - (b.pct === null) || (a.pct ?? 0) - (b.pct ?? 0)).forEach((x) => sv.appendChild(barraDash(`${x.cod} ${x.nombre}`, x)));
+  r.servicios.slice().sort((a, b) => (a.pct === null) - (b.pct === null) || (a.pct ?? 0) - (b.pct ?? 0)).forEach((x) => sv.appendChild(barraDash(x.nombre, x)));
   if (r.proyecto.length) {
-    sv.appendChild(crear("p", "ayuda", `En proyecto (no cuentan en el cumplimiento): ${r.proyecto.map((x) => `${x.cod} ${x.nombre}`).join("; ")}.`));
+    sv.appendChild(crear("p", "ayuda", `En proyecto (no cuentan en el cumplimiento): ${r.proyecto.map((x) => x.nombre).join("; ")}.`));
   }
   c.appendChild(sv);
+  dest.servicio = sv;
 
   const pa = seccionDash("Plan de acción", "Compromisos de los criterios que no cumplen.");
   const cols = crear("div", "plan-cols");
@@ -136,6 +157,8 @@ function dibujarDashboard() {
   cols.appendChild(columnaPlan("Sin responsable o sin fecha", plan.sinDatos, "sindatos", "Todos los criterios que no cumplen tienen responsable y fecha.", dias));
   pa.appendChild(cols);
   c.appendChild(pa);
+  dest.plan = pa;
+  dest.vencidas = cols.firstChild;
   c.appendChild(crear("p", "ayuda leyenda", "Semáforo: Cumple = 100 % · En camino = 80 a 99 % · Crítico = menos de 80 %."));
 }
 
@@ -158,10 +181,17 @@ function dibujarPanel(lista) {
 
   const frag = document.createDocumentFragment();
   const resumen = crear("div", "dash-tarjetas panel-resumen");
-  resumen.appendChild(tarjetaDash(rolUsuario === "consultor" ? "IPS" : "Evaluaciones", String(filas.length), "en total"));
-  resumen.appendChild(tarjetaDash("Críticas", String(cuenta.bajo), "menos de 80 %", cuenta.bajo ? "sem-bajo" : ""));
-  resumen.appendChild(tarjetaDash("En camino", String(cuenta.medio), "80 a 99 %", cuenta.medio ? "sem-medio" : ""));
-  resumen.appendChild(tarjetaDash("Completadas", String(cuenta.ok), "cumplimiento 100 %", cuenta.ok ? "sem-ok" : ""));
+  // Pulsar una tarjeta filtra la tabla (pulsarla otra vez, o "Evaluaciones", vuelve a mostrar todas)
+  const filtrar = (clave) => () => {
+    panelFiltro = panelFiltro === clave ? "todas" : clave;
+    dibujarPanel(lista);
+    resaltar(document.querySelector(".panel-tabla"));
+  };
+  const act = (clave) => panelFiltro === clave;
+  resumen.appendChild(tarjetaDash(rolUsuario === "consultor" ? "IPS" : "Evaluaciones", String(filas.length), "en total", "", () => { panelFiltro = "todas"; dibujarPanel(lista); resaltar(document.querySelector(".panel-tabla")); }, act("todas")));
+  resumen.appendChild(tarjetaDash("Críticas", String(cuenta.bajo), "menos de 80 %", cuenta.bajo ? "sem-bajo" : "", filtrar("bajo"), act("bajo")));
+  resumen.appendChild(tarjetaDash("En camino", String(cuenta.medio), "80 a 99 %", cuenta.medio ? "sem-medio" : "", filtrar("medio"), act("medio")));
+  resumen.appendChild(tarjetaDash("Completadas", String(cuenta.ok), "cumplimiento 100 %", cuenta.ok ? "sem-ok" : "", filtrar("ok"), act("ok")));
   frag.appendChild(resumen);
 
   const ctl = crear("div", "filtros panel-ctl");
