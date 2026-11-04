@@ -11,7 +11,7 @@ function tarjetaDash(titulo, valor, detalle, clase) {
 }
 function insignia(pct) {
   const s = semaforo(pct);
-  return crear("span", "insignia " + s.clase, s.texto);
+  return crear("span", "insignia " + s.clase, s.clase === "ok" ? "Completada" : s.texto);
 }
 // Una barra horizontal con el porcentaje escrito y el estado en texto
 function barraDash(nombre, d, extra) {
@@ -158,10 +158,10 @@ function dibujarPanel(lista) {
 
   const frag = document.createDocumentFragment();
   const resumen = crear("div", "dash-tarjetas panel-resumen");
-  resumen.appendChild(tarjetaDash("IPS", String(filas.length), "en tu panel"));
+  resumen.appendChild(tarjetaDash(rolUsuario === "consultor" ? "IPS" : "Evaluaciones", String(filas.length), "en total"));
   resumen.appendChild(tarjetaDash("Críticas", String(cuenta.bajo), "menos de 80 %", cuenta.bajo ? "sem-bajo" : ""));
   resumen.appendChild(tarjetaDash("En camino", String(cuenta.medio), "80 a 99 %", cuenta.medio ? "sem-medio" : ""));
-  resumen.appendChild(tarjetaDash("Cumplen", String(cuenta.ok), "100 %", cuenta.ok ? "sem-ok" : ""));
+  resumen.appendChild(tarjetaDash("Completadas", String(cuenta.ok), "cumplimiento 100 %", cuenta.ok ? "sem-ok" : ""));
   frag.appendChild(resumen);
 
   const ctl = crear("div", "filtros panel-ctl");
@@ -181,7 +181,7 @@ function dibujarPanel(lista) {
     ["brechas", "Más brechas"], ["reciente", "Última modificación"], ["nombre", "Nombre"],
   ], panelOrden, (v) => { panelOrden = v; dibujarPanel(lista); }));
   ctl.appendChild(sel("Mostrar", "panel-filtro", [
-    ["todas", "Todas"], ["bajo", "Críticas"], ["medio", "En camino"], ["ok", "Cumplen"], ["nd", "Sin datos"],
+    ["todas", "Todas"], ["bajo", "Críticas"], ["medio", "En camino"], ["ok", "Completadas"], ["nd", "Sin datos"],
   ], panelFiltro, (v) => { panelFiltro = v; dibujarPanel(lista); }));
   const lb = crear("label", "crece");
   lb.appendChild(crear("span", "", "Buscar"));
@@ -195,7 +195,7 @@ function dibujarPanel(lista) {
   const envo = crear("div", "tabla-scroll");
   const tabla = crear("table", "panel-tabla");
   const cab = tabla.createTHead().insertRow();
-  ["IPS", "Cumplimiento", "Avance", "Brechas", "Última modificación", "Estado", ""].forEach((t) => cab.appendChild(crear("th", "", t)));
+  [(rolUsuario === "consultor" ? "IPS" : "Evaluación"), "Cumplimiento", "Avance", "Brechas", "Última modificación", "Estado", ""].forEach((t) => cab.appendChild(crear("th", "", t)));
   const cuerpo = tabla.createTBody();
   envo.appendChild(tabla);
   frag.appendChild(envo);
@@ -230,7 +230,7 @@ function dibujarPanel(lista) {
         tr.insertCell().textContent = String(g.n);
       } else {
         const td = tr.insertCell(); td.colSpan = 3; td.className = "ayuda";
-        td.textContent = x.r ? "Aún sin servicios elegidos" : "Abre la evaluación una vez para calcular su resumen";
+        td.textContent = x.r ? "Aún sin servicios elegidos (evaluación sin iniciar)" : "Abre la evaluación una vez para calcular su resumen";
       }
       tr.insertCell().textContent = new Date(x.f.actualizado).toLocaleString("es-CO", { dateStyle: "medium", timeStyle: "short" });
       tr.insertCell().appendChild(insignia(conDatos(x) ? x.r.global.pct : null));

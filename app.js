@@ -113,7 +113,7 @@ function mostrarMensajes(lista) {
 // Dos niveles: arriba "Dashboard" y "Mis evaluaciones"; los pasos de una evaluación (resumen, 1, 2, 3) solo existen con una evaluación abierta.
 let evalAbierta = false;
 const VISTAS_EVAL = ["resumen", "alcance", "verificar", "resultados"];
-const vistaResumen = () => (rolUsuario === "consultor" ? "resumen" : "dashboard"); // la IPS ve su dashboard en la pestaña principal
+const vistaResumen = () => "resumen"; // dashboard de la evaluación abierta; la pestaña principal "Dashboard" lista todas las evaluaciones
 (function armarNavegacion() {
   const estilo = document.createElement("style");
   estilo.textContent = `.carpeta[hidden], .barra-eval[hidden] { display:none; }
@@ -142,7 +142,8 @@ const vistaResumen = () => (rolUsuario === "consultor" ? "resumen" : "dashboard"
   const panel = crear("section", "vista");
   panel.id = "vista-panel"; panel.hidden = true;
   const cab = crear("div", "barra");
-  cab.appendChild(crear("h2", "", "Panel de IPS"));
+  cab.appendChild(crear("h2", "", "Dashboard"));
+  cab.lastChild.id = "panel-titulo";
   const nueva = crear("button", "agregar", "+ Nueva evaluación");
   nueva.type = "button"; nueva.id = "panel-nueva";
   cab.appendChild(nueva);
@@ -152,7 +153,8 @@ const vistaResumen = () => (rolUsuario === "consultor" ? "resumen" : "dashboard"
 })();
 function pintarNavegacion() {
   const pasos = [["alcance", "1. Datos y alcance"], ["verificar", "2. Verificación"], ["resultados", "3. Resultados y brechas"]];
-  if (rolUsuario === "consultor") pasos.unshift(["resumen", "Resumen"]);
+  pasos.unshift(["resumen", "Resumen"]);
+  $("panel-titulo").textContent = rolUsuario === "consultor" ? "Panel de IPS" : "Dashboard: todas mis evaluaciones";
   $("nav-eval").replaceChildren(...pasos.map(([v, t]) => {
     const b = crear("button", "pestana" + (v === vista ? " activa" : ""), t);
     b.type = "button"; b.dataset.vista = v;
@@ -161,9 +163,11 @@ function pintarNavegacion() {
   }));
 }
 function pintarBarraEval() {
-  $("barra-eval").hidden = !evalAbierta;
-  $("carpeta").hidden = !evalAbierta;
-  if (!evalAbierta) return;
+  // La barra de la evaluación solo aparece dentro de ella, no en el Dashboard ni en Mis evaluaciones
+  const dentro = evalAbierta && VISTAS_EVAL.includes(vista);
+  $("barra-eval").hidden = !dentro;
+  $("carpeta").hidden = !dentro;
+  if (!dentro) return;
   const n = (estado.ips.nombre || "").trim() || "Sin nombre";
   $("eval-nombre").textContent = estado.ips.sede ? `${n} · ${estado.ips.sede}` : n;
 }
@@ -171,13 +175,13 @@ function irA(nombre) {
   if (VISTAS_EVAL.includes(nombre) && !evalAbierta) nombre = "lista";
   vista = nombre;
   document.querySelectorAll(".pestana").forEach((b) => b.classList.toggle("activa", b.dataset.vista === nombre));
-  const seccion = nombre === "dashboard" ? (rolUsuario === "consultor" ? "panel" : "dashboard") : nombre === "resumen" ? "dashboard" : nombre;
+  const seccion = nombre === "dashboard" ? "panel" : nombre === "resumen" ? "dashboard" : nombre;
   ["lista", "panel", "dashboard", "alcance", "verificar", "resultados"].forEach((v) => ($("vista-" + v).hidden = v !== seccion));
   pintarBarraEval();
   mostrarMensajes([]);
   if (nombre === "lista") dibujarLista();
-  if (nombre === "dashboard" && rolUsuario === "consultor") dibujarPanelVista();
-  else if (nombre === "dashboard" || nombre === "resumen") dibujarDashboard();
+  if (nombre === "dashboard") dibujarPanelVista();
+  if (nombre === "resumen") dibujarDashboard();
   if (nombre === "verificar") dibujarVerificar();
   if (nombre === "resultados") dibujarResultados();
 }
@@ -193,7 +197,7 @@ $("eval-cerrar").addEventListener("click", async () => {
   hayCambios = false;
   nubeEstado = "";
   pintarEstado();
-  irA(rolUsuario === "consultor" ? "dashboard" : "lista");
+  irA("dashboard");
 });
 $("panel-nueva").addEventListener("click", () => nuevaEvaluacion());
 ["ips-nombre", "ips-sede"].forEach((id) => $(id).addEventListener("input", pintarBarraEval));
@@ -1069,9 +1073,7 @@ async function alEntrar() {
   const esConsultor = rolUsuario === "consultor";
   evalAbierta = false;
   pintarNavegacion();
-  // La IPS entra directo al dashboard de su evaluación más reciente; el consultor, a su panel de IPS
-  if (!esConsultor && lista.length && $("recuperar").hidden) { await abrirEvaluacion(lista[0].id, "dashboard"); return; }
-  irA("dashboard");
+  irA("dashboard"); // todas las evaluaciones, con su estado
 }
 async function alCambiarSesion(evento, sesion) {
   if (evento === "PASSWORD_RECOVERY") {
