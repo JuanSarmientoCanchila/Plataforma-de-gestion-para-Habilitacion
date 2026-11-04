@@ -66,13 +66,24 @@ function evaluacionVacia() {
 function dibujarDashboard() {
   const c = $("dashboard");
   c.replaceChildren();
-  if (evaluacionVacia()) {
+  if (!evalAbierta || evaluacionVacia()) {
     c.appendChild(crear("h2", "", "Dashboard"));
-    c.appendChild(crear("p", "ayuda", "Aún no hay una evaluación en curso. Crea una nueva o abre una desde la pestaña inicial; aquí verás sus resultados."));
-    const b = crear("button", "agregar", "+ Nueva evaluación");
-    b.type = "button";
-    b.addEventListener("click", () => irA("alcance"));
-    c.appendChild(b);
+    const botones = crear("div", "botones");
+    const boton = (texto, clase, accion) => {
+      const b = crear("button", clase, texto);
+      b.type = "button";
+      b.addEventListener("click", accion);
+      botones.appendChild(b);
+    };
+    if (!evalAbierta) {
+      c.appendChild(crear("p", "ayuda", "No tienes una evaluación abierta. Abre una de tus evaluaciones o crea una nueva; aquí verás sus resultados."));
+      boton("+ Nueva evaluación", "agregar", () => nuevaEvaluacion());
+      boton("Ir a Mis evaluaciones", "mini", () => irA("lista"));
+    } else {
+      c.appendChild(crear("p", "ayuda", "Esta evaluación aún no tiene servicios, estándares ni respuestas. Define el alcance para ver sus resultados."));
+      boton("Ir a Datos y alcance", "agregar", () => irA("alcance"));
+    }
+    c.appendChild(botones);
     return;
   }
   const nombre = estado.ips.nombre || "IPS sin nombre";
@@ -135,11 +146,11 @@ let panelTexto = "";
 
 function datosPanel(f) {
   // La evaluación abierta se calcula al momento; las demás usan el resumen guardado
-  if (f.id === estado.id && serviciosActivos().length && !evaluacionVacia()) return calcularResumen();
+  if (f.id === estado.id && evalAbierta && serviciosActivos().length && !evaluacionVacia()) return calcularResumen();
   return f.resumen || null;
 }
 function dibujarPanel(lista) {
-  const c = $("lista-contenido");
+  const c = $("panel-contenido");
   const filas = lista.map((f) => ({ f, r: datosPanel(f) }));
   const conDatos = (x) => x.r && x.r.global && x.r.global.pct !== null;
   const cuenta = { bajo: 0, medio: 0, ok: 0, nd: 0 };
@@ -233,4 +244,20 @@ function dibujarPanel(lista) {
   }
   pintarFilas();
   c.replaceChildren(frag);
+}
+
+async function dibujarPanelVista() {
+  const c = $("panel-contenido");
+  c.replaceChildren(crear("p", "ayuda", "Cargando…"));
+  try {
+    nubeLista = await listarNube();
+  } catch (error) {
+    c.replaceChildren(crear("p", "alerta", `No se pudo cargar el panel: ${error.message}`));
+    return;
+  }
+  if (!nubeLista.length) {
+    c.replaceChildren(crear("p", "ayuda", 'Aún no tienes evaluaciones. Crea la primera con "Nueva evaluación".'));
+    return;
+  }
+  dibujarPanel(nubeLista);
 }

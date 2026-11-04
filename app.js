@@ -110,17 +110,93 @@ function mostrarMensajes(lista) {
 }
 
 // ---------- Pestañas ----------
+// Dos niveles: arriba "Dashboard" y "Mis evaluaciones"; los pasos de una evaluación (resumen, 1, 2, 3) solo existen con una evaluación abierta.
+let evalAbierta = false;
+const VISTAS_EVAL = ["resumen", "alcance", "verificar", "resultados"];
+const vistaResumen = () => (rolUsuario === "consultor" ? "resumen" : "dashboard"); // la IPS ve su dashboard en la pestaña principal
+(function armarNavegacion() {
+  const estilo = document.createElement("style");
+  estilo.textContent = `.carpeta[hidden], .barra-eval[hidden] { display:none; }
+.barra-eval { display:flex; align-items:center; gap:12px; flex-wrap:wrap; background:var(--azul-claro); border:1px solid var(--azul); border-radius:8px; padding:8px 12px; margin:4px 0 10px; }
+.eval-titulo { display:flex; gap:6px; align-items:baseline; flex-wrap:wrap; } .eval-titulo strong { color:var(--azul); }
+.pestanas.sub { flex:1; } .pestanas.sub .pestana { border-radius:6px; padding:6px 12px; background:white; }
+.pestanas.sub .pestana.activa { background:var(--azul); }`;
+  document.head.appendChild(estilo);
+  const nav = document.querySelector(".barra .pestanas");
+  nav.replaceChildren(...[["dashboard", "Dashboard"], ["lista", "Mis evaluaciones"]].map(([v, t]) => {
+    const b = crear("button", "pestana", t);
+    b.type = "button"; b.dataset.vista = v;
+    return b;
+  }));
+  const barra = crear("div", "barra-eval");
+  barra.id = "barra-eval"; barra.hidden = true;
+  const tit = crear("div", "eval-titulo");
+  tit.append(crear("span", "ayuda", "Evaluación abierta:"), crear("strong", ""));
+  tit.lastChild.id = "eval-nombre";
+  const sub = crear("nav", "pestanas sub");
+  sub.id = "nav-eval";
+  const cerrar = crear("button", "mini", "Cerrar evaluación");
+  cerrar.type = "button"; cerrar.id = "eval-cerrar";
+  barra.append(tit, sub, cerrar);
+  document.querySelector(".barra").after(barra);
+  const panel = crear("section", "vista");
+  panel.id = "vista-panel"; panel.hidden = true;
+  const cab = crear("div", "barra");
+  cab.appendChild(crear("h2", "", "Panel de IPS"));
+  const nueva = crear("button", "agregar", "+ Nueva evaluación");
+  nueva.type = "button"; nueva.id = "panel-nueva";
+  cab.appendChild(nueva);
+  const cont = crear("div"); cont.id = "panel-contenido";
+  panel.append(cab, cont);
+  $("vista-lista").before(panel);
+})();
+function pintarNavegacion() {
+  const pasos = [["alcance", "1. Datos y alcance"], ["verificar", "2. Verificación"], ["resultados", "3. Resultados y brechas"]];
+  if (rolUsuario === "consultor") pasos.unshift(["resumen", "Resumen"]);
+  $("nav-eval").replaceChildren(...pasos.map(([v, t]) => {
+    const b = crear("button", "pestana" + (v === vista ? " activa" : ""), t);
+    b.type = "button"; b.dataset.vista = v;
+    b.addEventListener("click", () => irA(v));
+    return b;
+  }));
+}
+function pintarBarraEval() {
+  $("barra-eval").hidden = !evalAbierta;
+  $("carpeta").hidden = !evalAbierta;
+  if (!evalAbierta) return;
+  const n = (estado.ips.nombre || "").trim() || "Sin nombre";
+  $("eval-nombre").textContent = estado.ips.sede ? `${n} · ${estado.ips.sede}` : n;
+}
 function irA(nombre) {
+  if (VISTAS_EVAL.includes(nombre) && !evalAbierta) nombre = "lista";
   vista = nombre;
   document.querySelectorAll(".pestana").forEach((b) => b.classList.toggle("activa", b.dataset.vista === nombre));
-  ["lista", "dashboard", "alcance", "verificar", "resultados"].forEach((v) => ($("vista-" + v).hidden = v !== nombre));
+  const seccion = nombre === "dashboard" ? (rolUsuario === "consultor" ? "panel" : "dashboard") : nombre === "resumen" ? "dashboard" : nombre;
+  ["lista", "panel", "dashboard", "alcance", "verificar", "resultados"].forEach((v) => ($("vista-" + v).hidden = v !== seccion));
+  pintarBarraEval();
   mostrarMensajes([]);
   if (nombre === "lista") dibujarLista();
-  if (nombre === "dashboard") dibujarDashboard();
+  if (nombre === "dashboard" && rolUsuario === "consultor") dibujarPanelVista();
+  else if (nombre === "dashboard" || nombre === "resumen") dibujarDashboard();
   if (nombre === "verificar") dibujarVerificar();
   if (nombre === "resultados") dibujarResultados();
 }
-document.querySelectorAll(".pestana").forEach((b) => b.addEventListener("click", () => irA(b.dataset.vista)));
+document.querySelectorAll(".barra > .pestanas .pestana").forEach((b) => b.addEventListener("click", () => irA(b.dataset.vista)));
+$("eval-cerrar").addEventListener("click", async () => {
+  if (hayCambios) {
+    await sincronizarNube();
+    if (hayCambios && !confirm("Hay cambios que no pudieron guardarse en la nube; quedan solo en este equipo. ¿Cerrar la evaluación de todos modos?")) return;
+  }
+  borrarCopia();
+  await cargarEstado(nuevoEstado());
+  evalAbierta = false;
+  hayCambios = false;
+  nubeEstado = "";
+  pintarEstado();
+  irA(rolUsuario === "consultor" ? "dashboard" : "lista");
+});
+$("panel-nueva").addEventListener("click", () => nuevaEvaluacion());
+["ips-nombre", "ips-sede"].forEach((id) => $(id).addEventListener("input", pintarBarraEval));
 $("ir-verificar").addEventListener("click", () => irA("verificar"));
 
 // ---------- Vista 1: datos y alcance ----------
@@ -787,6 +863,7 @@ function nuevaEvaluacion() {
   nubeEstado = "";
   pintarEstado();
   $("recuperar").hidden = true;
+  evalAbierta = true;
   irA("alcance");
 }
 $("nueva").addEventListener("click", nuevaEvaluacion);
@@ -803,6 +880,7 @@ $("archivo-xlsx").addEventListener("change", async (ev) => {
     if (!nubeLista.some((x) => x.id === res.estado.id)) res.estado.id = uuid();
     await cargarEstado(res.estado);
     cambio();
+    evalAbierta = true;
     irA("resultados");
     mostrarMensajes([]);
   } catch (error) {
@@ -827,7 +905,6 @@ async function dibujarLista() {
     c.replaceChildren(crear("p", "ayuda", 'Aún no tienes evaluaciones guardadas. Crea la primera con "Nueva evaluación".'));
     return;
   }
-  if (rolUsuario === "consultor") { dibujarPanel(nubeLista); return; }
   const frag = document.createDocumentFragment();
   nubeLista.forEach((f, k) => {
     const d = crear("div", "tarjeta-eval" + (f.id === estado.id ? " abierta" : ""));
@@ -865,7 +942,8 @@ async function abrirEvaluacion(id, destino) {
       // Evaluación guardada antes del dashboard: se guarda una vez para que tenga su resumen
       if (hayResumen && fila && !fila.resumen && serviciosActivos().length) cambio();
     }
-    irA(destino || (serviciosActivos().length ? "verificar" : "alcance"));
+    evalAbierta = true;
+    irA(destino || (serviciosActivos().length ? vistaResumen() : "alcance"));
   } catch (error) {
     mostrarMensajes([error.message]);
   }
@@ -879,9 +957,10 @@ async function eliminarEvaluacion(f) {
       await cargarEstado(nuevoEstado());
       hayCambios = false;
       nubeEstado = "";
+      evalAbierta = false;
       pintarEstado();
     }
-    dibujarLista();
+    irA(vista);
   } catch (error) {
     mostrarMensajes([error.message]);
   }
@@ -963,6 +1042,7 @@ function limpiarSesion() {
   nubeEstado = "";
   nubeLista = [];
   rolUsuario = "ips";
+  evalAbierta = false;
   $("recuperar").hidden = true;
   $("guardado").textContent = "";
   $("acc-clave").value = "";
@@ -987,11 +1067,11 @@ async function alEntrar() {
   ofrecerRecuperacion(lista);
   rolUsuario = await leerRol();
   const esConsultor = rolUsuario === "consultor";
-  $("lista-titulo").textContent = esConsultor ? "Panel de IPS" : "Mis evaluaciones";
-  document.querySelector('.pestana[data-vista="lista"]').textContent = esConsultor ? "Panel de IPS" : "Mis evaluaciones";
-  // La IPS entra directo al dashboard de su evaluación más reciente; el consultor, a su panel
+  evalAbierta = false;
+  pintarNavegacion();
+  // La IPS entra directo al dashboard de su evaluación más reciente; el consultor, a su panel de IPS
   if (!esConsultor && lista.length && $("recuperar").hidden) { await abrirEvaluacion(lista[0].id, "dashboard"); return; }
-  irA("lista");
+  irA("dashboard");
 }
 async function alCambiarSesion(evento, sesion) {
   if (evento === "PASSWORD_RECOVERY") {
@@ -1036,6 +1116,7 @@ function ofrecerRecuperacion(lista) {
     await cargarEstado(copia.estado);
     $("recuperar").hidden = true;
     cambio();
+    evalAbierta = true;
     irA(serviciosActivos().length ? "verificar" : "alcance");
   };
   $("recuperar-no").onclick = () => {
