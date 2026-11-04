@@ -58,9 +58,23 @@ function columnaPlan(titulo, items, clase, vacio, textoDias) {
   return c;
 }
 
+// Evaluación sin empezar: sin nombre, sin servicios elegidos y sin ninguna respuesta (solo trae el 11.1 por defecto)
+function evaluacionVacia() {
+  return !(estado.ips.nombre || "").trim() && !estado.alcance.servicios.length && !Object.keys(estado.resp).length;
+}
+
 function dibujarDashboard() {
   const c = $("dashboard");
   c.replaceChildren();
+  if (evaluacionVacia()) {
+    c.appendChild(crear("h2", "", "Dashboard"));
+    c.appendChild(crear("p", "ayuda", "Aún no hay una evaluación en curso. Crea una nueva o abre una desde la pestaña inicial; aquí verás sus resultados."));
+    const b = crear("button", "agregar", "+ Nueva evaluación");
+    b.type = "button";
+    b.addEventListener("click", () => irA("alcance"));
+    c.appendChild(b);
+    return;
+  }
   const nombre = estado.ips.nombre || "IPS sin nombre";
   const cab = crear("div", "dash-cab");
   const h = crear("div");
@@ -121,7 +135,7 @@ let panelTexto = "";
 
 function datosPanel(f) {
   // La evaluación abierta se calcula al momento; las demás usan el resumen guardado
-  if (f.id === estado.id && serviciosActivos().length) return calcularResumen();
+  if (f.id === estado.id && serviciosActivos().length && !evaluacionVacia()) return calcularResumen();
   return f.resumen || null;
 }
 function dibujarPanel(lista) {
