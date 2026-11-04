@@ -79,6 +79,8 @@ async function leerEvaluacion(archivo) {
         evid: textoCelda(f.getCell(col.Evidencia)), resp: textoCelda(f.getCell(col.Responsable)),
         fecha: textoCelda(f.getCell(col["Fecha compromiso"])),
       };
+      // Fila heredada de un criterio padre "No aplica": se vuelve a heredar sola, no se guarda como propia
+      if (datos.e === "na" && /^No aplica por el criterio /.test(datos.motivo)) { datos.e = ""; datos.motivo = ""; }
       if (datos.fecha && !/^\d{4}-\d{2}-\d{2}$/.test(datos.fecha)) { errores.push(`Fila ${n}: la fecha compromiso debe tener formato AAAA-MM-DD.`); return; }
       if (datos.e || datos.motivo || datos.obs || datos.evid || datos.resp || datos.fecha) nuevo.resp[id] = datos;
     });

@@ -50,6 +50,23 @@ function estadoDe(id) {
   const r = estado.resp[id];
   return r && r.e ? r.e : "sr";
 }
+// "No aplica" se hereda: si un criterio N es "No aplica", los que se desprenden de él (N.1, N.1.1…) tampoco aplican.
+// No se borra nada: si se quita el "No aplica" de N, los hijos recuperan lo que tenían marcado.
+const POR_NUM = new Map(REQUISITOS.map((r) => [r[I.serv] + "|" + r[I.num], r]));
+function ancestroNA(id) {
+  const r = POR_ID.get(id);
+  if (!r) return null;
+  const partes = r[I.num].split(".");
+  for (let k = partes.length - 1; k >= 1; k--) {
+    const a = POR_NUM.get(r[I.serv] + "|" + partes.slice(0, k).join("."));
+    if (a && !a[I.enc] && estadoDe(a[I.id]) === "na") return a;
+  }
+  return null;
+}
+// Estado que cuenta para los resultados (propio o heredado)
+function estadoEfectivo(id) {
+  return ancestroNA(id) ? "na" : estadoDe(id);
+}
 function campo(id, nombre, valor) {
   if (!estado.resp[id]) estado.resp[id] = { e: "", motivo: "", obs: "", evid: "", resp: "", fecha: "" };
   estado.resp[id][nombre] = valor;
@@ -173,10 +190,11 @@ function calcular(filas) {
   const t = { c: 0, n: 0, na: 0, sr: 0, total: 0, aplicables: 0, pct: null, avance: null, naSinMotivo: 0 };
   filas.forEach((r) => {
     if (r[I.enc]) return;
-    const e = estadoDe(r[I.id]);
+    const e = estadoEfectivo(r[I.id]);
     t[e]++;
     t.total++;
-    if (e === "na" && !(estado.resp[r[I.id]].motivo || "").trim()) t.naSinMotivo++;
+    // el motivo se pide solo en el criterio marcado; los hijos lo heredan
+    if (estadoDe(r[I.id]) === "na" && e === "na" && !(estado.resp[r[I.id]].motivo || "").trim()) t.naSinMotivo++;
   });
   t.aplicables = t.c + t.n + t.sr;
   t.pct = t.aplicables > 0 ? t.c / t.aplicables : null;
@@ -201,10 +219,10 @@ function matriz() {
 }
 
 function brechas() {
-  return filasAlcance().filter((r) => !r[I.enc] && estadoDe(r[I.id]) === "n");
+  return filasAlcance().filter((r) => !r[I.enc] && estadoEfectivo(r[I.id]) === "n");
 }
 function noAplica() {
-  return filasAlcance().filter((r) => !r[I.enc] && estadoDe(r[I.id]) === "na");
+  return filasAlcance().filter((r) => !r[I.enc] && estadoDe(r[I.id]) === "na" && !ancestroNA(r[I.id]));
 }
 function profundidad(num) {
   return num.split(".").length - 1;

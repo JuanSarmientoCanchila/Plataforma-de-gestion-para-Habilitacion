@@ -344,7 +344,7 @@ function filasVisibles() {
   return filasDeServicio(servActual, estado.verTodos).filter((r) => {
     if (fs !== "" && r[I.std] !== Number(fs)) return false;
     if (r[I.enc]) return !filtrando;
-    if (fe && (!dentroIds.has(r[I.id]) || estadoDe(r[I.id]) !== fe)) return false;
+    if (fe && (!dentroIds.has(r[I.id]) || estadoEfectivo(r[I.id]) !== fe)) return false;
     if (ft && !norm(r[I.num] + " " + r[I.texto]).includes(ft)) return false;
     return true;
   });
@@ -388,7 +388,8 @@ const BOTONES = [["c", "Cumple"], ["n", "No cumple"], ["na", "No aplica"]];
 
 function filaReq(r, abrir) {
   const id = r[I.id];
-  const e = estadoDe(id);
+  const padre = r[I.enc] ? null : ancestroNA(id);
+  const e = padre ? "na" : estadoDe(id);
   const sangria = Math.min(profundidad(r[I.num]), 4) * 18;
   if (r[I.enc]) {
     const d = crear("div", "encabezado");
@@ -413,6 +414,12 @@ function filaReq(r, abrir) {
   if (fuera) {
     d.appendChild(cuerpo);
     d.appendChild(crear("span", "ayuda", "No aplica a tu perfil"));
+    return d;
+  }
+  if (padre) {
+    d.classList.add("heredado");
+    d.appendChild(cuerpo);
+    d.appendChild(crear("span", "ayuda", `No aplica, porque el criterio ${padre[I.num]} no aplica`));
     return d;
   }
   const resp = respuesta(id);
@@ -570,9 +577,18 @@ $("requisitos").addEventListener("click", (ev) => {
   const id = fila.dataset.id;
   const b = ev.target.closest("[data-set]");
   if (b) {
+    const antes = estadoDe(id);
     cambiarEstado(id, b.dataset.set);
     cambio();
     fila.replaceWith(filaReq(POR_ID.get(id), !!fila.querySelector(".detalle")));
+    if (antes === "na" || estadoDe(id) === "na") {
+      // los criterios que se desprenden de este se activan o se desactivan
+      const pref = POR_ID.get(id)[I.num] + ".";
+      $("requisitos").querySelectorAll(".req").forEach((x) => {
+        const h = POR_ID.get(x.dataset.id);
+        if (h && h[I.serv] === POR_ID.get(id)[I.serv] && h[I.num].startsWith(pref)) x.replaceWith(filaReq(h, false));
+      });
+    }
     actualizarAvanceServicio();
     dibujarLateral();
     return;
@@ -602,7 +618,7 @@ $("masivo").addEventListener("change", () => {
   const v = $("masivo").value;
   $("masivo").value = "";
   if (!v) return;
-  const filas = filasVisibles().filter((r) => !r[I.enc] && dentroIds.has(r[I.id]));
+  const filas = filasVisibles().filter((r) => !r[I.enc] && dentroIds.has(r[I.id]) && !ancestroNA(r[I.id]));
   if (!filas.length) return;
   if (!confirm(`Se marcarán ${filas.length} requisitos visibles como "${ETIQUETA[v]}". ¿Continuar?`)) return;
   filas.forEach((r) => {

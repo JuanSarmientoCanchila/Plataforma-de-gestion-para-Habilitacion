@@ -20,8 +20,10 @@ function encabezado(fila) {
   fila.eachCell((c) => estilizar(c, { negrita: true, fondo: "FFDDEBF7" }));
 }
 function fila(r) {
-  const x = respuesta(r[I.id]) || {};
-  const e = estadoDe(r[I.id]);
+  const x = { ...(respuesta(r[I.id]) || {}) };
+  const e = estadoEfectivo(r[I.id]);
+  const padre = ancestroNA(r[I.id]);
+  if (padre) x.motivo = x.motivo || `No aplica por el criterio ${padre[I.num]}`;
   return [r[I.id], r[I.hoja], SERVICIOS[r[I.serv]].cod, SERVICIOS[r[I.serv]].nombre, ESTANDARES[r[I.std]], r[I.num], r[I.texto],
     ETIQUETA[e], x.motivo || "", x.obs || "", x.evid || "", x.resp || "", x.fecha || "",
     esProyecto(r[I.serv]) ? "En proyecto" : "Habilitado", (CACHE_EVID.get(r[I.id]) || []).map((a) => a.nombre).join("; ")];
@@ -33,7 +35,7 @@ function hojaTabla(libro, nombre, filas) {
   filas.forEach((r) => {
     const f = h.addRow(fila(r));
     f.eachCell((c, col) => estilizar(c, { izquierda: [4, 5, 7, 9, 10, 11, 12].includes(col) }));
-    f.getCell(8).fill = relleno(COLOR_ESTADO[estadoDe(r[I.id])]);
+    f.getCell(8).fill = relleno(COLOR_ESTADO[estadoEfectivo(r[I.id])]);
   });
   h.autoFilter = { from: { row: 1, column: 1 }, to: { row: 1, column: COLUMNAS_DETALLE.length } };
   return h;

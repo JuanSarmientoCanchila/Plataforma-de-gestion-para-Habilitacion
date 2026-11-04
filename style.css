@@ -142,3 +142,5 @@ footer a { color:var(--azul); }
 .panel-tabla .celda-barra { min-width:220px; } .panel-tabla .celda-barra .barra-fila { grid-template-columns:1fr minmax(100px,130px); }
 .panel-tabla .celda-barra .barra-nombre { display:none; }
 @media (max-width:640px) { .barra-fila { grid-template-columns:1fr; gap:3px; } }
+
+.req.heredado { opacity:.6; background:var(--gris); border-left-color:var(--borde); align-items:center; }
